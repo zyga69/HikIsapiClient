@@ -1,10 +1,9 @@
-using HikIsapi.Client.Model;
+using HikIsapi.Client.Model.Response;
 
 namespace HikIsapi.Client
 {
     public interface IIsapi : IDisposable
     {
-
-        ResponseStatus DoorOpen(int doorNo);
+        bool DoorOpen(int doorNo);
     }
 }

@@ -1,5 +1,7 @@
 ﻿
 
+using System.Xml;
+using System.Xml.Serialization;
 using HikIsapi.Client;
 using HikIsapi.Client.Model;
 
@@ -9,7 +11,23 @@ internal class Program
 {
     private static void Main(string[] args)
     {
-        using (var isapi = new Isapi(new Config())) { }
+        XmlSerializer xsSubmit = new XmlSerializer(typeof(RemoteControlDoor));
+        var data = new RemoteControlDoor();
+        var xml = "";
+
+        // using (var sww = new StringWriter())
+        // {
+        //     using (XmlWriter writer = XmlWriter.Create(sww))
+        //     {
+        //         xsSubmit.Serialize(writer, data);
+        //         xml = sww.ToString(); // Your XML
+        //     }
+        // }
+
+        using (var isapi = new Isapi(new Config()))
+        {
+            isapi.DoorOpen(1);
+        }
 
 
     }
