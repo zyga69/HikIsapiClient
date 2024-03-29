@@ -2,7 +2,7 @@ using System.Xml.Serialization;
 
 namespace HikIsapi.Client.Model.Request
 {
-    [XmlRoot(ElementName = "SessionLogin")]
+    [XmlRoot(ElementName = "SessionLogin", Namespace = "http://www.isapi.org/ver20/XMLSchema")]
     public class SessionLogin
     {
         [XmlElement(ElementName = "userName")]

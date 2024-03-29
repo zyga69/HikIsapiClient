@@ -1,9 +1,11 @@
 
+using System.Diagnostics;
 using System.Net;
 using HikIsapi.Client.ExtensionMethods;
 using HikIsapi.Client.Model;
 using HikIsapi.Client.Model.Request;
 using HikIsapi.Client.Model.Response;
+using hikisapiclient.SeriRestClient;
 using Newtonsoft.Json;
 using RestSharp;
 using Serilog;
@@ -14,7 +16,7 @@ namespace HikIsapi.Client;
 
 public class Isapi : IIsapi
 {
-    private readonly RestClient client;
+    private readonly SeriRestClient client;
     private readonly Logger logger;
     private readonly CookieContainer cookies = new();
 
@@ -25,7 +27,13 @@ public class Isapi : IIsapi
              .MinimumLevel.Debug()
              .CreateLogger();
 
-        client = new RestClient($"{config.Address}/ISAPI");
+        var options = new RestClientOptions()
+        {
+            BaseUrl = new Uri($"{config.Address}/ISAPI"),
+            CookieContainer = cookies
+        };
+
+        client = new SeriRestClient(options);
 
         var loginCapabilities = GetLoginCapbilities(config.User);
         if (loginCapabilities != null)
@@ -35,26 +43,15 @@ public class Isapi : IIsapi
 
     private SessionLoginCap? GetLoginCapbilities(string user)
     {
-        var capabilitiesRequest = new RestRequest("Security/sessionLogin/capabilities");
-        capabilitiesRequest.AddQueryParameter("username", user);
-        capabilitiesRequest.AddQueryParameter("random", GetRandom());
-
-        logger.Debug($"Executing [{capabilitiesRequest.Method}] -> [{capabilitiesRequest.Resource}]");
+        var request = new RestRequest("Security/sessionLogin/capabilities");
+        request.AddQueryParameter("username", user);
+        request.AddQueryParameter("random", GetRandom());
 
 
+        logger.Information($"Getting Login Capabilities for user [{user}]");
 
-        logger.Debug($"Getting Login Capabilities for user [{user}]");
+        var response = client.LogGet<SessionLoginCap>(request);
 
-        var response = client.ExecuteGet<SessionLoginCap>(capabilitiesRequest);
-
-        if (!response.IsSuccessful)
-        {
-            logger.Error("Could not GET Login Capabilities");
-            logger.Error($"[{response.StatusCode}]: [{response.ErrorMessage}]");
-            return null;
-        }
-
-        logger.Debug(JsonConvert.SerializeObject(response.Data));
         return response.Data;
     }
 
@@ -119,10 +116,7 @@ public class Isapi : IIsapi
 
     private void LogOut()
     {
-        var logoutRequest = new RestRequest("Security/sessionLogout")
-        {
-            CookieContainer = cookies
-        };
+        var logoutRequest = new RestRequest("Security/sessionLogout");
         var response = client.ExecutePut(logoutRequest);
 
         if (!response.IsSuccessful)
@@ -140,8 +134,7 @@ public class Isapi : IIsapi
     {
         var request = new RestRequest($"AccessControl/RemoteControl/door/{doorNo}")
         {
-            RequestFormat = DataFormat.Xml,
-            CookieContainer = cookies
+            RequestFormat = DataFormat.Xml
         };
         request.AddBody(new RemoteControlDoor());
 
@@ -160,6 +153,7 @@ public class Isapi : IIsapi
             return false;
         }
 
+        LogRequest(request, response);
         return true;
 
 
@@ -180,5 +174,37 @@ public class Isapi : IIsapi
         DateTime utcNow = DateTime.UtcNow;
         DateTime epoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         return (long)(utcNow - epoch).TotalMilliseconds;
+    }
+
+    private void LogRequest(RestRequest request, RestResponse response)
+    {
+        var requestToLog = new
+        {
+            resource = request.Resource,
+            // Parameters are custom anonymous objects in order to have the parameter type as a nice string
+            // otherwise it will just show the enum value
+            parameters = request.Parameters.Select(parameter => new
+            {
+                name = parameter.Name,
+                value = parameter.Value,
+                type = parameter.Type.ToString()
+            }),
+            // ToString() here to have the method as a nice string otherwise it will just show the enum value
+            method = request.Method.ToString(),
+            // This will generate the actual Uri used in the request
+            uri = client.BuildUri(request),
+        };
+
+        var responseToLog = new
+        {
+            statusCode = response.StatusCode,
+            content = response.Content,
+            headers = response.Headers,
+            // The Uri that actually responded (could be different from the requestUri if a redirection occurred)
+            responseUri = response.ResponseUri,
+            errorMessage = response.ErrorMessage,
+        };
+
+        logger.Debug($"Request: {JsonConvert.SerializeObject(requestToLog)}, Response: {JsonConvert.SerializeObject(responseToLog)}");
     }
 }
