@@ -17,13 +17,18 @@ namespace hikisapiclient.SeriRestClient
     public  class SeriRestClient : RestClient
     {
         private readonly Logger logger;
-
-        public SeriRestClient(RestClientOptions options) : base(options)
+        private static XmlWriterSettings settings = new XmlWriterSettings
         {
-            logger = new LoggerConfiguration()
-                .WriteTo.Console(theme: AnsiConsoleTheme.Code, applyThemeToRedirectedOutput: true)
-                .MinimumLevel.Debug()
-                .CreateLogger();
+            Indent = true,
+            IndentChars = "  ",
+            NewLineChars = "\r\n",
+            NewLineHandling = NewLineHandling.Replace
+
+        };
+
+        public SeriRestClient(RestClientOptions options, Logger logger) : base(options)
+        {
+            this.logger = logger;
         }
 
 
@@ -32,30 +37,30 @@ namespace hikisapiclient.SeriRestClient
             return LogRequest<T>(request, Method.Get);
         }
 
-        public RestResponse LogPost(RestRequest request)
+        public RestResponse<T> LogPost<T>(RestRequest request)
         {
-            return LogRequest<object>(request, Method.Post);
+            return LogRequest<T>(request, Method.Post);
         }
 
-        public RestResponse<T> LogRequest<T>(RestRequest request, Method method)
+        public RestResponse<TResponse> LogRequest<TResponse>(RestRequest request, Method method)
         {
             logger.Debug($"[REST] REQUEST  [{method}][{request.Resource}]");
 
-            foreach(Parameter parameter in request.Parameters)
+            foreach (Parameter parameter in request.Parameters)
             {
                 if (parameter.Type == ParameterType.RequestBody)
                 {
-                    logger.Debug($"[REST]          [Payload]: {GetXml<SessionLogin>(parameter.Value as SessionLogin)}");
-                    //logger.Debug($"[REST]          [Payload]: {JsonConvert.SerializeObject(parameter.Value, Formatting.Indented)}");
+
+                    LogBody(parameter.Value, request.RequestFormat);
                 }
                 else
                 {
-                    logger.Debug($"[REST]          [{parameter.Type}]->[{parameter.Name}]: [{parameter.Value}]");
+                    logger.Debug($"[REST]  [{parameter.Type}]->[{parameter.Name}]: [{parameter.Value}]");
                 }
-                
+
             }
 
-            var response = this.Execute<T>(request, method);
+            var response = this.Execute<TResponse>(request, method);
 
             if (response.IsSuccessful)
             {
@@ -70,28 +75,53 @@ namespace hikisapiclient.SeriRestClient
                 logger.Error($"[REST] RESPONSE [{response.StatusCode}]: [{response.ErrorMessage}]");
             }
 
-            if (response.Data != null)
-            {
-                var payload = JsonConvert.SerializeObject(response.Data, Newtonsoft.Json.Formatting.Indented);
-                logger.Debug($"[REST] [Payload]: {payload}");
-            }
+            LogBody(response.Content, DataFormat.None);
 
             return response;
 
         }
 
-        private static string GetXml<T>(T data) 
+        private void LogBody(object? data, DataFormat format)
         {
-            XmlSerializer xsSubmit = new XmlSerializer(typeof(T));
+            if (data == null)
+                return;
+
+            logger.Debug($"[REST]  [Payload]: {FormatBody(data, format)}");
+        }
+
+        private static string FormatBody(object? data, DataFormat format)
+        {
+            if (data == null)
+                return string.Empty;
+
+            switch (format) 
+            {
+                case DataFormat.Json: 
+                    return JsonConvert.SerializeObject(data, Newtonsoft.Json.Formatting.Indented);
+
+                case DataFormat.Xml:
+                    return GetXml(data);
+
+                default:
+                    return data.ToString();
+                    
+            }
+
+        }
+
+        private static string GetXml(object? data) 
+        {
+            XmlSerializer xsSubmit = new XmlSerializer(data.GetType());
 
             using (var sww = new StringWriter())
             {
-                using (XmlWriter writer = XmlWriter.Create(sww))
+                using (XmlWriter writer = XmlWriter.Create(sww, settings))
                 {
                     xsSubmit.Serialize(writer, data);
                     return sww.ToString(); 
                 }
             }
         }
+
     }
 }

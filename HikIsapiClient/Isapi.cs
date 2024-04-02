@@ -23,7 +23,7 @@ public class Isapi : IIsapi
     public Isapi(IIsapiConfig config)
     {
         logger = new LoggerConfiguration()
-             .WriteTo.Console(theme: AnsiConsoleTheme.Literate, applyThemeToRedirectedOutput: true)
+             .WriteTo.Console(theme: SystemConsoleTheme.Colored, applyThemeToRedirectedOutput: true)
              .MinimumLevel.Debug()
              .CreateLogger();
 
@@ -33,7 +33,7 @@ public class Isapi : IIsapi
             CookieContainer = cookies
         };
 
-        client = new SeriRestClient(options);
+        client = new SeriRestClient(options, logger);
 
         var loginCapabilities = GetLoginCapbilities(config.User);
         if (loginCapabilities != null)
@@ -46,6 +46,7 @@ public class Isapi : IIsapi
         var request = new RestRequest("Security/sessionLogin/capabilities");
         request.AddQueryParameter("username", user);
         request.AddQueryParameter("random", GetRandom());
+        request.RequestFormat = DataFormat.Xml;
 
 
         logger.Information($"Getting Login Capabilities for user [{user}]");
@@ -58,21 +59,14 @@ public class Isapi : IIsapi
     private void Login(string user, string password, SessionLoginCap capabilitiesResponse)
     {
 
-        logger.Debug($"Trying to login");
-        logger.Debug($" Login Capabilities -> Challenge:      [{capabilitiesResponse.Challenge}]");
-        logger.Debug($" Login Capabilities -> Salt:           [{capabilitiesResponse.Salt}]");
-        logger.Debug($" Login Capabilities -> Iterations:     [{capabilitiesResponse.Iterations}]");
-        logger.Debug($" Login Capabilities -> IsIrreversible: [{capabilitiesResponse.IsIrreversible}]");
-        logger.Debug($" Login Capabilities -> SessionID:      [{capabilitiesResponse.SessionID}]");
-
+        logger.Information($"Trying to login");
+        
         var passwordHash = password.ToPasswordHash(
             capabilitiesResponse.Challenge,
             user,
             capabilitiesResponse.Salt,
             capabilitiesResponse.Iterations,
             capabilitiesResponse.IsIrreversible);
-
-        logger.Debug($" Passwordhash: [{passwordHash}]");
 
         var loginRequest = new RestRequest("Security/sessionLogin")
         {
@@ -90,7 +84,7 @@ public class Isapi : IIsapi
             SessionIDVersion = 2
         });
 
-        var response = client.ExecutePost(loginRequest);
+        var response = client.LogPost<SessionLogin>(loginRequest);
 
         if (!response.IsSuccessful)
         {
