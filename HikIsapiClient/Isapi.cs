@@ -17,23 +17,13 @@ namespace HikIsapi.Client;
 public class Isapi : IIsapi
 {
     private readonly SeriRestClient client;
-    private readonly Logger logger;
-    private readonly CookieContainer cookies = new();
+    private readonly ILogger logger;
 
-    public Isapi(IIsapiConfig config)
+    public Isapi(IIsapiConfig config, ILogger logger, SeriRestClient seriRestClient)
     {
-        logger = new LoggerConfiguration()
-             .WriteTo.Console(theme: SystemConsoleTheme.Colored, applyThemeToRedirectedOutput: true)
-             .MinimumLevel.Debug()
-             .CreateLogger();
 
-        var options = new RestClientOptions()
-        {
-            BaseUrl = new Uri($"{config.Address}/ISAPI"),
-            CookieContainer = cookies
-        };
-
-        client = new SeriRestClient(options, logger);
+        this.logger = logger;
+        client = seriRestClient;
 
         var loginCapabilities = GetLoginCapbilities(config.User);
         if (loginCapabilities != null)
@@ -51,7 +41,8 @@ public class Isapi : IIsapi
 
         logger.Information($"Getting Login Capabilities for user [{user}]");
 
-        var response = client.LogGet<SessionLoginCap>(request);
+        var response = client.LogRequest<SessionLoginCap>(request, Method.Get);
+        response.ThrowIfError();
 
         return response.Data;
     }
@@ -59,7 +50,7 @@ public class Isapi : IIsapi
     private void Login(string user, string password, SessionLoginCap capabilitiesResponse)
     {
 
-        logger.Information($"Trying to login");
+        logger.Information($"Trying to Log in");
         
         var passwordHash = password.ToPasswordHash(
             capabilitiesResponse.Challenge,
@@ -84,14 +75,8 @@ public class Isapi : IIsapi
             SessionIDVersion = 2
         });
 
-        var response = client.LogPost<SessionLogin>(loginRequest);
-
-        if (!response.IsSuccessful)
-        {
-            logger.Error("Could not Login");
-            logger.Error($"[{response.StatusCode}]: [{response.ErrorMessage}]");
-            return;
-        }
+        var response = client.LogRequest<SessionLogin>(loginRequest, Method.Post);
+        response.ThrowIfError();
 
         if (response.Cookies == null)
         {
@@ -99,62 +84,35 @@ public class Isapi : IIsapi
             return;
         }
 
-
-        foreach (Cookie cookie in response.Cookies)
-        {
-            logger.Debug($" Cookie -> {cookie.Name}: [{cookie.Value}]");
-        }
-
-        cookies.Add(response.Cookies);
+        client.Options?.CookieContainer?.Add(response.Cookies);
     }
 
     private void LogOut()
     {
+        logger.Information($"Trying to Log out");
         var logoutRequest = new RestRequest("Security/sessionLogout");
-        var response = client.ExecutePut(logoutRequest);
-
-        if (!response.IsSuccessful)
-        {
-            logger.Error("Could not Logout");
-            logger.Error($"[{response.StatusCode}]: [{response.ErrorMessage}]");
-        }
-        else
-        {
-            logger.Debug("Succesfully Logged Out");
-        }
+        client.LogRequest< Model.Response.ResponseStatus>(logoutRequest, Method.Put);
     }
 
     public bool DoorOpen(int doorNo)
     {
+        logger.Information($"Trying to Open Door");
+
         var request = new RestRequest($"AccessControl/RemoteControl/door/{doorNo}")
         {
             RequestFormat = DataFormat.Xml
         };
         request.AddBody(new RemoteControlDoor());
 
-        var response = client.ExecutePut<Model.Response.ResponseStatus>(request);
-        if (!response.IsSuccessful)
-        {
-            logger.Error("Could not Open Door");
-            logger.Error($"[{response.StatusCode}]: [{response.ErrorMessage}]");
-            return false;
-        }
+        var response = client.LogRequest<Model.Response.ResponseStatus>(request, Method.Put);
+        response.ThrowIfError();
 
-        if (response.Data?.StatusCode != (int)ResponseStatusString.OK)
-        {
-            logger.Error("Could not Open Door");
-            logger.Error($"[{response.Data?.StatusCode}]: [{response.Data?.StatusString}] - [{response.Data?.SubStatusCode}]");
-            return false;
-        }
-
-        LogRequest(request, response);
-        return true;
-
-
+        return (response.IsSuccessful && response.Data?.StatusCode == (int)ResponseStatusString.OK);
     }
 
     public void Dispose()
     {
+        //TODO not called!!
         LogOut();
     }
 
@@ -170,35 +128,4 @@ public class Isapi : IIsapi
         return (long)(utcNow - epoch).TotalMilliseconds;
     }
 
-    private void LogRequest(RestRequest request, RestResponse response)
-    {
-        var requestToLog = new
-        {
-            resource = request.Resource,
-            // Parameters are custom anonymous objects in order to have the parameter type as a nice string
-            // otherwise it will just show the enum value
-            parameters = request.Parameters.Select(parameter => new
-            {
-                name = parameter.Name,
-                value = parameter.Value,
-                type = parameter.Type.ToString()
-            }),
-            // ToString() here to have the method as a nice string otherwise it will just show the enum value
-            method = request.Method.ToString(),
-            // This will generate the actual Uri used in the request
-            uri = client.BuildUri(request),
-        };
-
-        var responseToLog = new
-        {
-            statusCode = response.StatusCode,
-            content = response.Content,
-            headers = response.Headers,
-            // The Uri that actually responded (could be different from the requestUri if a redirection occurred)
-            responseUri = response.ResponseUri,
-            errorMessage = response.ErrorMessage,
-        };
-
-        logger.Debug($"Request: {JsonConvert.SerializeObject(requestToLog)}, Response: {JsonConvert.SerializeObject(responseToLog)}");
-    }
 }

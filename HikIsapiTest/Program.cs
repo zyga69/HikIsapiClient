@@ -1,35 +1,34 @@
-﻿
+﻿using HikIsapi.Client;
+using hikisapiclient.ExtensionMethods;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Serilog;
+using Serilog.Sinks.SystemConsole.Themes;
 
-using System.Xml;
-using System.Xml.Serialization;
-using HikIsapi.Client;
-using HikIsapi.Client.Model;
-
-namespace HikIsapi.Test;
+namespace HikIsapiTest;
 
 internal class Program
 {
     private static void Main(string[] args)
     {
-        XmlSerializer xsSubmit = new XmlSerializer(typeof(RemoteControlDoor));
-        var data = new RemoteControlDoor();
-        var xml = "";
-
-        // using (var sww = new StringWriter())
-        // {
-        //     using (XmlWriter writer = XmlWriter.Create(sww))
-        //     {
-        //         xsSubmit.Serialize(writer, data);
-        //         xml = sww.ToString(); // Your XML
-        //     }
-        // }
-
-        using (var isapi = new Isapi(new Config()))
+        using (IHost host = GetHostBuilder().Build())
         {
-            isapi.DoorOpen(1);
+            host.Services.GetRequiredService<IIsapi>().DoorOpen(1);
         }
+    }
 
-
+    private static IHostBuilder GetHostBuilder()
+    {
+        return Host.CreateDefaultBuilder()
+            .ConfigureServices((context, services) =>
+            {
+                services.AddSingleton<App>();
+            })
+            .AddHikIsapi<Config>()
+            .UseSerilog((context, services, configuration) => configuration
+                .ReadFrom.Services(services)
+                .Enrich.FromLogContext()
+                .WriteTo.Console(theme: SystemConsoleTheme.Colored, applyThemeToRedirectedOutput: true));
     }
 }
 

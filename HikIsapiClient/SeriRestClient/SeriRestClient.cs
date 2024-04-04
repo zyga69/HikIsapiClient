@@ -2,44 +2,30 @@
 using RestSharp;
 using Serilog;
 using Serilog.Core;
-using Serilog.Sinks.SystemConsole.Themes;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Net;
+using System.Net.Mime;
 using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Serialization;
 using System.Xml;
-using HikIsapi.Client.Model.Request;
+using System.Xml.Linq;
+using System.Xml.Serialization;
 
 namespace hikisapiclient.SeriRestClient
 {
-    public  class SeriRestClient : RestClient
+    public class SeriRestClient : RestClient
     {
-        private readonly Logger logger;
+        private readonly ILogger logger;
+
         private static XmlWriterSettings settings = new XmlWriterSettings
         {
             Indent = true,
             IndentChars = "  ",
             NewLineChars = "\r\n",
             NewLineHandling = NewLineHandling.Replace
-
         };
 
-        public SeriRestClient(RestClientOptions options, Logger logger) : base(options)
+        public SeriRestClient(RestClientOptions options, ILogger logger) : base(options)
         {
             this.logger = logger;
-        }
-
-
-        public RestResponse<T> LogGet<T>(RestRequest request)
-        {
-            return LogRequest<T>(request, Method.Get);
-        }
-
-        public RestResponse<T> LogPost<T>(RestRequest request)
-        {
-            return LogRequest<T>(request, Method.Post);
         }
 
         public RestResponse<TResponse> LogRequest<TResponse>(RestRequest request, Method method)
@@ -50,15 +36,15 @@ namespace hikisapiclient.SeriRestClient
             {
                 if (parameter.Type == ParameterType.RequestBody)
                 {
-
-                    LogBody(parameter.Value, request.RequestFormat);
+                    LogRequestBody(parameter.Value, request.RequestFormat);
                 }
                 else
                 {
                     logger.Debug($"[REST]  [{parameter.Type}]->[{parameter.Name}]: [{parameter.Value}]");
                 }
-
             }
+
+            LogCookies(request.CookieContainer?.GetAllCookies());
 
             var response = this.Execute<TResponse>(request, method);
 
@@ -75,41 +61,67 @@ namespace hikisapiclient.SeriRestClient
                 logger.Error($"[REST] RESPONSE [{response.StatusCode}]: [{response.ErrorMessage}]");
             }
 
-            LogBody(response.Content, DataFormat.None);
+            LogCookies(response.Cookies);
+            LogResponseBody(response.Content, response.ContentType);
 
             return response;
-
         }
 
-        private void LogBody(object? data, DataFormat format)
+        private void LogResponseBody(string? content, string? contentType)
+        {
+            if (string.IsNullOrWhiteSpace(content)) return;
+
+            string formatted = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(contentType)) formatted = content;
+
+            switch (contentType)
+            {
+                case MediaTypeNames.Application.Xml:
+                    formatted = PrettyXml(content); break;
+
+                case MediaTypeNames.Application.Json:
+                    formatted = PrettyJson(content); break;
+                default: formatted = content; break;
+            }
+
+            logger.Debug($"[REST]  [Payload]: {formatted}");
+        }
+
+        private void LogRequestBody(object? data, DataFormat format)
         {
             if (data == null)
                 return;
 
-            logger.Debug($"[REST]  [Payload]: {FormatBody(data, format)}");
-        }
+            string formatted = string.Empty;
 
-        private static string FormatBody(object? data, DataFormat format)
-        {
-            if (data == null)
-                return string.Empty;
-
-            switch (format) 
+            switch (format)
             {
-                case DataFormat.Json: 
-                    return JsonConvert.SerializeObject(data, Newtonsoft.Json.Formatting.Indented);
+                case DataFormat.Json:
+                    formatted = JsonConvert.SerializeObject(data, Newtonsoft.Json.Formatting.Indented); break;
 
                 case DataFormat.Xml:
-                    return GetXml(data);
+                    formatted = GetXml(data); break;
 
                 default:
-                    return data.ToString();
-                    
+                    formatted = data.ToString() ?? string.Empty; break;
             }
 
+            logger.Debug($"[REST]  [Payload]: {formatted}");
         }
 
-        private static string GetXml(object? data) 
+        private void LogCookies(CookieCollection? collection)
+        {
+            if (collection != null)
+            {
+                foreach (Cookie cookie in collection)
+                {
+                    logger.Debug($"[REST]  [Cookie]->[{cookie.Name}]: [{cookie.Value}]");
+                }
+            }
+        }
+
+        private static string GetXml(object? data)
         {
             XmlSerializer xsSubmit = new XmlSerializer(data.GetType());
 
@@ -118,10 +130,38 @@ namespace hikisapiclient.SeriRestClient
                 using (XmlWriter writer = XmlWriter.Create(sww, settings))
                 {
                     xsSubmit.Serialize(writer, data);
-                    return sww.ToString(); 
+                    return sww.ToString();
                 }
             }
         }
 
+        private static string PrettyXml(string? xml)
+        {
+            if (string.IsNullOrWhiteSpace(xml)) return string.Empty;
+
+            var stringBuilder = new StringBuilder();
+
+            var element = XElement.Parse(xml);
+
+            var settings = new XmlWriterSettings();
+            settings.OmitXmlDeclaration = true;
+            settings.Indent = true;
+            settings.NewLineOnAttributes = true;
+
+            using (var xmlWriter = XmlWriter.Create(stringBuilder, settings))
+            {
+                element.Save(xmlWriter);
+            }
+
+            return stringBuilder.ToString();
+        }
+
+        private static string PrettyJson(string? json)
+        {
+            if (string.IsNullOrWhiteSpace(json)) return string.Empty;
+
+            dynamic parsedJson = JsonConvert.DeserializeObject(json);
+            return JsonConvert.SerializeObject(parsedJson, Newtonsoft.Json.Formatting.Indented);
+        }
     }
 }
