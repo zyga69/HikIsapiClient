@@ -22,7 +22,7 @@ public class Isapi : IIsapi
     private readonly SeriRestClient client;
     private readonly ILogger logger;
 
-    public Isapi(IIsapiConfig config, ILogger logger, [FromKeyedServices(Isapi.ServiceKey)] SeriRestClient seriRestClient)
+    public Isapi(IIsapiConfig config, ILogger logger, [FromKeyedServices(ServiceKey)] SeriRestClient seriRestClient)
     {
 
         this.logger = logger;
@@ -42,7 +42,7 @@ public class Isapi : IIsapi
         request.RequestFormat = DataFormat.Xml;
 
 
-        logger.Information($"Getting Login Capabilities for user [{user}]");
+        logger.Information($"[ISAPI] Getting Login Capabilities for user [{user}]");
 
         var response = client.LogRequest<SessionLoginCap>(request, Method.Get);
         response.ThrowIfError();
@@ -53,7 +53,7 @@ public class Isapi : IIsapi
     private void Login(string user, string password, SessionLoginCap capabilitiesResponse)
     {
 
-        logger.Information($"Trying to Log in");
+        logger.Information($"[ISAPI] Log in");
         
         var passwordHash = password.ToPasswordHash(
             capabilitiesResponse.Challenge,
@@ -83,7 +83,7 @@ public class Isapi : IIsapi
 
         if (response.Cookies == null)
         {
-            logger.Error("No cookies in login response");
+            logger.Error("[ISAPI] No cookies in login response");
             return;
         }
 
@@ -92,14 +92,14 @@ public class Isapi : IIsapi
 
     private void LogOut()
     {
-        logger.Information($"Trying to Log out");
+        logger.Information($"[ISAPI] Log out");
         var logoutRequest = new RestRequest("Security/sessionLogout");
         client.LogRequest< Model.Response.ResponseStatus>(logoutRequest, Method.Put);
     }
 
     public bool DoorOpen(int doorNo)
     {
-        logger.Information($"Trying to Open Door");
+        logger.Information($"[ISAPI] Open Door [{doorNo}]");
 
         var request = new RestRequest($"AccessControl/RemoteControl/door/{doorNo}")
         {
