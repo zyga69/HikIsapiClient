@@ -6,6 +6,7 @@ using HikIsapi.Client.Model;
 using HikIsapi.Client.Model.Request;
 using HikIsapi.Client.Model.Response;
 using hikisapiclient.SeriRestClient;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using RestSharp;
 using Serilog;
@@ -16,10 +17,12 @@ namespace HikIsapi.Client;
 
 public class Isapi : IIsapi
 {
+    public const string ServiceKey = "ISAPI";
+
     private readonly SeriRestClient client;
     private readonly ILogger logger;
 
-    public Isapi(IIsapiConfig config, ILogger logger, SeriRestClient seriRestClient)
+    public Isapi(IIsapiConfig config, ILogger logger, [FromKeyedServices(Isapi.ServiceKey)] SeriRestClient seriRestClient)
     {
 
         this.logger = logger;
@@ -112,7 +115,6 @@ public class Isapi : IIsapi
 
     public void Dispose()
     {
-        //TODO not called!!
         LogOut();
     }
 
