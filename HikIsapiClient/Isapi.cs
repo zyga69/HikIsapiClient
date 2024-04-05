@@ -1,17 +1,11 @@
-
-using System.Diagnostics;
-using System.Net;
 using HikIsapi.Client.ExtensionMethods;
 using HikIsapi.Client.Model;
 using HikIsapi.Client.Model.Request;
 using HikIsapi.Client.Model.Response;
-using hikisapiclient.SeriRestClient;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
 using RestSharp;
 using Serilog;
-using Serilog.Core;
-using Serilog.Sinks.SystemConsole.Themes;
+using SeriRest;
 
 namespace HikIsapi.Client;
 
@@ -24,14 +18,12 @@ public class Isapi : IIsapi
 
     public Isapi(IIsapiConfig config, ILogger logger, [FromKeyedServices(ServiceKey)] SeriRestClient seriRestClient)
     {
-
         this.logger = logger;
         client = seriRestClient;
 
         var loginCapabilities = GetLoginCapbilities(config.User);
         if (loginCapabilities != null)
             Login(config.User, config.Password, loginCapabilities);
-
     }
 
     private SessionLoginCap? GetLoginCapbilities(string user)
@@ -40,7 +32,6 @@ public class Isapi : IIsapi
         request.AddQueryParameter("username", user);
         request.AddQueryParameter("random", GetRandom());
         request.RequestFormat = DataFormat.Xml;
-
 
         logger.Information($"[ISAPI] Getting Login Capabilities for user [{user}]");
 
@@ -52,9 +43,8 @@ public class Isapi : IIsapi
 
     private void Login(string user, string password, SessionLoginCap capabilitiesResponse)
     {
-
         logger.Information($"[ISAPI] Log in");
-        
+
         var passwordHash = password.ToPasswordHash(
             capabilitiesResponse.Challenge,
             user,
@@ -94,7 +84,7 @@ public class Isapi : IIsapi
     {
         logger.Information($"[ISAPI] Log out");
         var logoutRequest = new RestRequest("Security/sessionLogout");
-        client.LogRequest< Model.Response.ResponseStatus>(logoutRequest, Method.Put);
+        client.LogRequest<Model.Response.ResponseStatus>(logoutRequest, Method.Put);
     }
 
     public bool DoorOpen(int doorNo)
@@ -129,5 +119,4 @@ public class Isapi : IIsapi
         DateTime epoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         return (long)(utcNow - epoch).TotalMilliseconds;
     }
-
 }
