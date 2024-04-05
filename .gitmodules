@@ -1,0 +1,3 @@
+[submodule "SeriRestClient"]
+	path = SeriRestClient
+	url = https://zyga69@bitbucket.org/zyga69/serirestclient.git
