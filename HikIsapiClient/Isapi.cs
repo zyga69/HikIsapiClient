@@ -4,26 +4,24 @@ using HikIsapi.Client.Model.Request;
 using HikIsapi.Client.Model.Response;
 using Microsoft.Extensions.DependencyInjection;
 using RestSharp;
-using Serilog;
 using SeriRest;
+using ILogger = Serilog.ILogger;
 
 namespace HikIsapi.Client;
 
-public class Isapi : IIsapi
+public class Isapi : IIsapi, IIsapiAuthenticated
 {
     public const string ServiceKey = "ISAPI";
 
     private readonly SeriRestClient client;
     private readonly ILogger logger;
+    private readonly IIsapiConfig config;
 
     public Isapi(IIsapiConfig config, ILogger logger, [FromKeyedServices(ServiceKey)] SeriRestClient seriRestClient)
     {
         this.logger = logger;
+        this.config = config;   
         client = seriRestClient;
-
-        var loginCapabilities = GetLoginCapbilities(config.User);
-        if (loginCapabilities != null)
-            Login(config.User, config.Password, loginCapabilities);
     }
 
     private SessionLoginCap? GetLoginCapbilities(string user)
@@ -41,8 +39,18 @@ public class Isapi : IIsapi
         return response.Data;
     }
 
+    public IIsapiAuthenticated Login()
+    {
+        var loginCapabilities = GetLoginCapbilities(config.User);
+        if (loginCapabilities != null)
+            Login(config.User, config.Password, loginCapabilities);
+
+        return this;
+    }
+
     private void Login(string user, string password, SessionLoginCap capabilitiesResponse)
     {
+
         logger.Information($"[ISAPI] Log in");
 
         var passwordHash = password.ToPasswordHash(
@@ -74,20 +82,22 @@ public class Isapi : IIsapi
         if (response.Cookies == null)
         {
             logger.Error("[ISAPI] No cookies in login response");
-            return;
+            throw new Exception("[ISAPI] No cookies in login response");
         }
 
         client.Options?.CookieContainer?.Add(response.Cookies);
     }
 
-    private void LogOut()
+    public IIsapi LogOut()
     {
         logger.Information($"[ISAPI] Log out");
         var logoutRequest = new RestRequest("Security/sessionLogout");
         client.LogRequest<Model.Response.ResponseStatus>(logoutRequest, Method.Put);
+
+        return this;
     }
 
-    public bool DoorOpen(int doorNo)
+    public IIsapiAuthenticated DoorOpen(int doorNo)
     {
         logger.Information($"[ISAPI] Open Door [{doorNo}]");
 
@@ -100,12 +110,10 @@ public class Isapi : IIsapi
         var response = client.LogRequest<Model.Response.ResponseStatus>(request, Method.Put);
         response.ThrowIfError();
 
-        return (response.IsSuccessful && response.Data?.StatusCode == (int)ResponseStatusString.OK);
-    }
+        if (!(response.IsSuccessful && response.Data?.StatusCode == (int)ResponseStatusString.OK))
+            throw new Exception($"Unable to open door!");
 
-    public void Dispose()
-    {
-        LogOut();
+         return this;
     }
 
     private static int GetRandom()

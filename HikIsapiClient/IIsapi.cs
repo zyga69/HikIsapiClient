@@ -1,7 +1,16 @@
+using HikIsapi.Client.Model.Response;
+
 namespace HikIsapi.Client
 {
-    public interface IIsapi : IDisposable
+    public interface IIsapi 
     {
-        bool DoorOpen(int doorNo);
+        IIsapiAuthenticated Login();
+        
+    }
+
+    public interface IIsapiAuthenticated 
+    {
+        IIsapiAuthenticated DoorOpen(int doorNo);
+        IIsapi LogOut();
     }
 }

@@ -14,10 +14,6 @@ internal class Program
     private static void Main(string[] args)
     {
         var hostBuilder = Host.CreateDefaultBuilder(args)
-            .ConfigureServices((context, services) =>
-            {
-                services.AddSingleton<App>();
-            })
             .AddHikIsapi()
             .UseSerilog((context, services, configuration) => configuration
                 .ReadFrom.Services(services)
@@ -26,7 +22,10 @@ internal class Program
 
         using (IHost host = hostBuilder.Build())
         {
-            host.Services.GetRequiredService<IIsapi>().DoorOpen(1);
+            host.Services.GetRequiredService<IIsapi>()
+                .Login()
+                .DoorOpen(1)
+                .LogOut();
         }
     }
 }
