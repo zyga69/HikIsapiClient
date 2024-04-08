@@ -1,7 +1,5 @@
 ﻿using HikIsapi.Client;
-using hikisapiclient;
 using hikisapiclient.ExtensionMethods;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
@@ -18,15 +16,19 @@ internal class Program
             .UseSerilog((context, services, configuration) => configuration
                 .ReadFrom.Services(services)
                 .Enrich.FromLogContext()
+                .MinimumLevel.Debug()
                 .WriteTo.Console(theme: SystemConsoleTheme.Colored, applyThemeToRedirectedOutput: true));
 
         using (IHost host = hostBuilder.Build())
         {
-            host.Services.GetRequiredService<IIsapi>()
-                .Login()
-                .DoorOpen(1)
-                .LogOut();
+            var api = host.Services.GetRequiredService<IIsapi>();
+
+            if (api.IsAvailable())
+            {
+                api.Login()
+                    .DoorOpen(1)
+                    .LogOut();
+            }
         }
     }
 }
-

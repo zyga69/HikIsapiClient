@@ -20,42 +20,44 @@ public class Isapi : IIsapi, IIsapiAuthenticated
     public Isapi(IIsapiConfig config, ILogger logger, [FromKeyedServices(ServiceKey)] SeriRestClient seriRestClient)
     {
         this.logger = logger;
-        this.config = config;   
+        this.config = config;
         client = seriRestClient;
     }
 
-    private SessionLoginCap? GetLoginCapbilities(string user)
+    private RestResponse<SessionLoginCap> GetLoginCapbilities()
     {
         var request = new RestRequest("Security/sessionLogin/capabilities");
-        request.AddQueryParameter("username", user);
+        request.AddQueryParameter("username", config.User);
         request.AddQueryParameter("random", GetRandom());
         request.RequestFormat = DataFormat.Xml;
 
-        logger.Information($"[ISAPI] Getting Login Capabilities for user [{user}]");
+        logger.Information($"[ISAPI] Getting Login Capabilities for user [{config.User}]");
 
-        var response = client.LogRequest<SessionLoginCap>(request, Method.Get);
-        response.ThrowIfError();
-
-        return response.Data;
+        return client.LogRequest<SessionLoginCap>(request, Method.Get);
     }
+
+    public bool IsAvailable() => GetLoginCapbilities().IsSuccessful;
 
     public IIsapiAuthenticated Login()
     {
-        var loginCapabilities = GetLoginCapbilities(config.User);
-        if (loginCapabilities != null)
-            Login(config.User, config.Password, loginCapabilities);
+        var loginCapabilities = GetLoginCapbilities();
+        loginCapabilities.ThrowIfError();
+
+        if (loginCapabilities.Data == null)
+            throw new Exception("No login capabilities");
+
+        Login(loginCapabilities.Data);
 
         return this;
     }
 
-    private void Login(string user, string password, SessionLoginCap capabilitiesResponse)
+    private void Login(SessionLoginCap capabilitiesResponse)
     {
-
         logger.Information($"[ISAPI] Log in");
 
-        var passwordHash = password.ToPasswordHash(
+        var passwordHash = config.Password.ToPasswordHash(
             capabilitiesResponse.Challenge,
-            user,
+            config.User,
             capabilitiesResponse.Salt,
             capabilitiesResponse.Iterations,
             capabilitiesResponse.IsIrreversible);
@@ -68,7 +70,7 @@ public class Isapi : IIsapi, IIsapiAuthenticated
 
         loginRequest.AddBody(new SessionLogin()
         {
-            UserName = user,
+            UserName = config.User,
             Password = passwordHash,
             SessionID = capabilitiesResponse.SessionID,
             IsSupportSessionTag = false,
@@ -113,7 +115,7 @@ public class Isapi : IIsapi, IIsapiAuthenticated
         if (!(response.IsSuccessful && response.Data?.StatusCode == (int)ResponseStatusString.OK))
             throw new Exception($"Unable to open door!");
 
-         return this;
+        return this;
     }
 
     private static int GetRandom()

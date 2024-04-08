@@ -14,5 +14,6 @@ namespace hikisapiclient
         public string User { get; set; }
 
         public string Password { get; set; }
+        public int MaxTimeout { get;set; }
     }
 }

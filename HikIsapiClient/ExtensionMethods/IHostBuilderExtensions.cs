@@ -20,10 +20,15 @@ namespace hikisapiclient.ExtensionMethods
                             .GetRequiredSection(configSection)
                             .Get<IsapiConfig>() ?? throw new Exception($"Section [{configSection}] not found in config")
                         )
-                        .AddSeriRestClient(Isapi.ServiceKey, (sp, key) => new RestClientOptions()
+                        .AddSeriRestClient(Isapi.ServiceKey, (sp, key) =>
                         {
-                            CookieContainer = new CookieContainer(),
-                            BaseUrl = new Uri($"{sp.GetRequiredService<IIsapiConfig>().Address}/ISAPI")
+                            var config = sp.GetRequiredService<IIsapiConfig>();
+                            return new RestClientOptions()
+                            {
+                                CookieContainer = new CookieContainer(),
+                                BaseUrl = new Uri($"{config.Address}/ISAPI"),
+                                MaxTimeout = config.MaxTimeout
+                            };
                         })
                         .AddScoped<IIsapi, Isapi>();
             });
