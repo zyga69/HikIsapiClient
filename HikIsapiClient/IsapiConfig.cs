@@ -1,9 +1,4 @@
 ﻿using HikIsapi.Client;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace hikisapiclient
 {
@@ -14,6 +9,6 @@ namespace hikisapiclient
         public string User { get; set; }
 
         public string Password { get; set; }
-        public int MaxTimeout { get;set; }
+        public int MaxTimeout { get; set; }
     }
 }

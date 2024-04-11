@@ -12,7 +12,7 @@ internal class Program
     private static void Main(string[] args)
     {
         var hostBuilder = Host.CreateDefaultBuilder(args)
-            .AddHikIsapi()
+            .AddHikIsapi("Isapi")
             .UseSerilog((context, services, configuration) => configuration
                 .ReadFrom.Services(services)
                 .Enrich.FromLogContext()
