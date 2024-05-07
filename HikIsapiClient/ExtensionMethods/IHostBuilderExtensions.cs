@@ -34,16 +34,16 @@ namespace hikisapiclient.ExtensionMethods
             });
         }
 
-        public static IHostBuilder AddKeyedHikIsapi<TConfig>(this IHostBuilder hostBuilder, object key, Func<IServiceProvider, object, TConfig> implementationFactory)
+        public static IHostBuilder AddKeyedHikIsapi<TConfig>(this IHostBuilder hostBuilder, object isapiKey, Func<IServiceProvider, object, TConfig> implementationFactory)
             where TConfig : class, IIsapiConfig
         {
             return hostBuilder.ConfigureServices((context, services) =>
             {
                 services
-                    .AddKeyedSingleton<IIsapiConfig, TConfig>(key, implementationFactory)
-                    .AddSeriRestClient(Isapi.ServiceKey, (sp, _) =>
+                    .AddKeyedSingleton<IIsapiConfig, TConfig>(isapiKey, implementationFactory)
+                    .AddSeriRestClient($"{Isapi.ServiceKey}_{isapiKey}", (sp, seriRestKey) =>
                     {
-                        var config = sp.GetRequiredKeyedService<IIsapiConfig>(key);
+                        var config = sp.GetRequiredKeyedService<IIsapiConfig>(isapiKey);
                         return new RestClientOptions()
                         {
                             CookieContainer = new CookieContainer(),
@@ -51,10 +51,10 @@ namespace hikisapiclient.ExtensionMethods
                             MaxTimeout = config.MaxTimeout
                         };
                     })
-                    .AddKeyedTransient<IIsapi, Isapi>(key, (sp, _) => new Isapi(
-                        sp.GetRequiredKeyedService<IIsapiConfig>(key),
+                    .AddKeyedTransient<IIsapi, Isapi>(isapiKey, (sp, _) => new Isapi(
+                        sp.GetRequiredKeyedService<IIsapiConfig>(isapiKey),
                         sp.GetRequiredService<Serilog.ILogger>(),
-                        sp.GetRequiredKeyedService<SeriRestClient>(Isapi.ServiceKey)
+                        sp.GetRequiredKeyedService<SeriRestClient>($"{Isapi.ServiceKey}_{isapiKey}")
                         ));
             });
         }

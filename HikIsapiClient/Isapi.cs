@@ -17,7 +17,7 @@ public class Isapi : IIsapi, IIsapiAuthenticated
     private readonly ILogger logger;
     private readonly IIsapiConfig config;
 
-    public Isapi( IIsapiConfig config, ILogger logger, [FromKeyedServices(ServiceKey)] SeriRestClient seriRestClient)
+    public Isapi( IIsapiConfig config, ILogger logger,SeriRestClient seriRestClient)
     {
         this.logger = logger;
         this.config = config;

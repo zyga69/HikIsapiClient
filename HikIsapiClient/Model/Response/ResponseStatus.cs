@@ -6,13 +6,18 @@ namespace HikIsapi.Client.Model.Response
     public enum ResponseStatusString
     {
         [XmlEnum("OK")]
-        OK = 1
+        OK = 1,
+        [XmlEnum("Invalid Operation")]
+        InvalidOperation = 2
     }
 
     public enum ResponseSubStatusString
     {
         [XmlEnum("ok")]
-        ok
+        ok,
+
+        [XmlEnum("invalidOperation")]
+        invalidOperation
     }
 
     [XmlRoot(ElementName = "ResponseStatus", Namespace = "http://www.std-cgi.com/ver10/XMLSchema")]
