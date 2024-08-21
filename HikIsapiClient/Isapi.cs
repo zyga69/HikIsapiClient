@@ -19,9 +19,11 @@ public class Isapi : IIsapi, IIsapiAuthenticated
 
     public Isapi( IIsapiConfig config, ILogger logger,SeriRestClient seriRestClient)
     {
-        this.logger = logger;
+        this.logger = logger.ForContext<Isapi>();
         this.config = config;
         client = seriRestClient;
+
+        logger.Debug($"[ISAPI] Constructor");
     }
 
     private RestResponse<SessionLoginCap> GetLoginCapbilities()
