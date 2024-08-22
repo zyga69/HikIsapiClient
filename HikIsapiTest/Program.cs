@@ -26,7 +26,9 @@ internal class Program
             if (api.IsAvailable())
             {
                 api.Login()
-                    .DoorOpen(1)
+                    .SessionHeartBeat()
+                    //.DoorOpen(1)
+                    .SessionHeartBeat()
                     .LogOut();
             }
         }

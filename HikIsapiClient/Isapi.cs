@@ -16,6 +16,11 @@ public class Isapi : IIsapi, IIsapiAuthenticated
     private readonly ILogger logger;
     private readonly IIsapiConfig config;
 
+    private bool loggedIn = false;
+    private int heartBeatCount = 0;
+
+    public int HeartBeatCount => heartBeatCount;
+
     public Isapi(IIsapiConfig config, ILogger logger, SeriRestClient seriRestClient)
     {
         this.logger = logger.ForContext<Isapi>();
@@ -41,6 +46,8 @@ public class Isapi : IIsapi, IIsapiAuthenticated
 
     public IIsapiAuthenticated Login()
     {
+        if (loggedIn) { return this; }
+
         var loginCapabilities = GetLoginCapbilities();
         loginCapabilities.ThrowIfError();
 
@@ -89,6 +96,19 @@ public class Isapi : IIsapi, IIsapiAuthenticated
         }
 
         client.Options?.CookieContainer?.Add(response.Cookies);
+        loggedIn = true;
+    }
+
+    public IIsapiAuthenticated SessionHeartBeat()
+    {
+        var hearBeatRequest = new RestRequest("Security/sessionHeartbeat");
+        var response = client.LogRequest< Model.Response.ResponseStatus>(hearBeatRequest, Method.Put);
+        response.ThrowIfError();
+
+        if (!(response.IsSuccessful && response.Data?.StatusCode == (int)ResponseStatusString.OK))
+            throw new Exception($"Unable to execute heartbeat!");
+
+        return this;
     }
 
     public IIsapi LogOut()
@@ -96,6 +116,8 @@ public class Isapi : IIsapi, IIsapiAuthenticated
         logger.Information($"[ISAPI] Log out");
         var logoutRequest = new RestRequest("Security/sessionLogout");
         client.LogRequest<Model.Response.ResponseStatus>(logoutRequest, Method.Put);
+
+        loggedIn = false;
 
         return this;
     }
