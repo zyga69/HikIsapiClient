@@ -2,7 +2,6 @@ using HikIsapi.Client.ExtensionMethods;
 using HikIsapi.Client.Model;
 using HikIsapi.Client.Model.Request;
 using HikIsapi.Client.Model.Response;
-using Microsoft.Extensions.DependencyInjection;
 using RestSharp;
 using SeriRest;
 using ILogger = Serilog.ILogger;
@@ -17,7 +16,7 @@ public class Isapi : IIsapi, IIsapiAuthenticated
     private readonly ILogger logger;
     private readonly IIsapiConfig config;
 
-    public Isapi( IIsapiConfig config, ILogger logger,SeriRestClient seriRestClient)
+    public Isapi(IIsapiConfig config, ILogger logger, SeriRestClient seriRestClient)
     {
         this.logger = logger.ForContext<Isapi>();
         this.config = config;
