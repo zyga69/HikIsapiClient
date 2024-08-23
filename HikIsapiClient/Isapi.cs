@@ -96,7 +96,9 @@ public class Isapi : IIsapi, IIsapiAuthenticated
         }
 
         client.Options?.CookieContainer?.Add(response.Cookies);
+        
         loggedIn = true;
+        heartBeatCount = 0;
     }
 
     public IIsapiAuthenticated SessionHeartBeat()
@@ -107,6 +109,8 @@ public class Isapi : IIsapi, IIsapiAuthenticated
 
         if (!(response.IsSuccessful && response.Data?.StatusCode == (int)ResponseStatusString.OK))
             throw new Exception($"Unable to execute heartbeat!");
+
+        heartBeatCount++;
 
         return this;
     }

@@ -55,7 +55,7 @@ namespace hikisapiclient.ExtensionMethods
                             MaxTimeout = config.MaxTimeout
                         };
                     })
-                    .AddKeyedTransient<IIsapi, Isapi>(isapiKey, (sp, _) => new Isapi(
+                    .AddKeyedSingleton<IIsapi, Isapi>(isapiKey, (sp, _) => new Isapi(
                         sp.GetRequiredKeyedService<IIsapiConfig>(isapiKey),
                         sp.GetRequiredService<Serilog.ILogger>(),
                         sp.GetRequiredKeyedService<SeriRestClient>($"{Isapi.ServiceKey}_{isapiKey}")
