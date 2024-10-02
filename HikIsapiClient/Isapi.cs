@@ -2,6 +2,7 @@ using HikIsapi.Client.ExtensionMethods;
 using HikIsapi.Client.Model;
 using HikIsapi.Client.Model.Request;
 using HikIsapi.Client.Model.Response;
+using NetDaemonApps.apps.Function;
 using RestSharp;
 using SeriRest;
 using ILogger = Serilog.ILogger;
@@ -23,7 +24,7 @@ public class Isapi : IIsapi, IIsapiAuthenticated
 
     public Isapi(IIsapiConfig config, ILogger logger, SeriRestClient seriRestClient)
     {
-        this.logger = logger.ForContext<Isapi>();
+        this.logger = logger;
         this.config = config;
         client = seriRestClient;
 

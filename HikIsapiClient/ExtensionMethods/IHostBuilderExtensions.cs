@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using NetDaemonApps.apps.Function;
 using RestSharp;
 using SeriRest;
 using System.Net;
@@ -55,7 +56,7 @@ namespace hikisapiclient.ExtensionMethods
                             MaxTimeout = config.MaxTimeout
                         };
                     })
-                    .AddKeyedSingleton<IIsapi, Isapi>(isapiKey, (sp, _) => new Isapi(
+                    .AddKeyedScoped<IIsapi, Isapi>(isapiKey, (sp, _) => new Isapi(
                         sp.GetRequiredKeyedService<IIsapiConfig>(isapiKey),
                         sp.GetRequiredService<Serilog.ILogger>(),
                         sp.GetRequiredKeyedService<SeriRestClient>($"{Isapi.ServiceKey}_{isapiKey}")
