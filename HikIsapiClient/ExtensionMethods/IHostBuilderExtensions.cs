@@ -53,7 +53,7 @@ namespace hikisapiclient.ExtensionMethods
                         {
                             CookieContainer = new CookieContainer(),
                             BaseUrl = new Uri($"{config.Address}/ISAPI"),
-                            MaxTimeout = config.MaxTimeout
+                            Timeout = TimeSpan.FromMilliseconds(config.MaxTimeout)
                         };
                     })
                     .AddKeyedScoped<IIsapi, Isapi>(isapiKey, (sp, _) => new Isapi(

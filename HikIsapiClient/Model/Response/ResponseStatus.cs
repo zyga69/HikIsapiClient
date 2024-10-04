@@ -17,7 +17,10 @@ namespace HikIsapi.Client.Model.Response
         ok,
 
         [XmlEnum("invalidOperation")]
-        invalidOperation
+        invalidOperation,
+
+        [XmlEnum("badAuthorization")]
+        badAuthorization
     }
 
     [XmlRoot(ElementName = "ResponseStatus", Namespace = "http://www.std-cgi.com/ver10/XMLSchema")]
