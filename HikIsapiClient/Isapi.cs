@@ -2,14 +2,14 @@ using HikIsapi.Client.ExtensionMethods;
 using HikIsapi.Client.Model;
 using HikIsapi.Client.Model.Request;
 using HikIsapi.Client.Model.Response;
-using NetDaemonApps.apps.Function;
+using NetDaemonApps.Lib.HikIsapiClient.HikIsapiClient.ExtensionMethods;
 using RestSharp;
 using SeriRest;
 using ILogger = Serilog.ILogger;
 
 namespace HikIsapi.Client;
 
-public class Isapi : IIsapi, IIsapiAuthenticated
+public class Isapi : IIsapi, IIsapiAuthenticated, IDisposable
 {
     public const string ServiceKey = "ISAPI";
 
@@ -24,32 +24,30 @@ public class Isapi : IIsapi, IIsapiAuthenticated
 
     public Isapi(IIsapiConfig config, ILogger logger, SeriRestClient seriRestClient)
     {
-        this.logger = logger;
+        this.logger = logger.ForContext($"{ServiceKey}.{config.Name}");
         this.config = config;
         client = seriRestClient;
-
-        logger.Debug($"[ISAPI] Constructor");
     }
 
-    private RestResponse<SessionLoginCap> GetLoginCapbilities()
+    private RestResponse<SessionLoginCap> GetLoginCapabilities()
     {
         var request = new RestRequest("Security/sessionLogin/capabilities");
         request.AddQueryParameter("username", config.User);
         request.AddQueryParameter("random", GetRandom());
         request.RequestFormat = DataFormat.Xml;
 
-        logger.Information($"[ISAPI] Getting Login Capabilities for user [{config.User}]");
+        logger.Information($"Getting Login Capabilities for user [{config.User}]");
 
         return client.LogRequest<SessionLoginCap>(request, Method.Get);
     }
 
-    public bool IsAvailable() => GetLoginCapbilities().IsSuccessful;
+    public bool IsAvailable() => GetLoginCapabilities().IsSuccessful;
 
     public IIsapiAuthenticated Login()
     {
         if (loggedIn) { return this; }
 
-        var loginCapabilities = GetLoginCapbilities();
+        var loginCapabilities = GetLoginCapabilities();
         loginCapabilities.ThrowIfError();
 
         if (loginCapabilities.Data == null)
@@ -62,8 +60,6 @@ public class Isapi : IIsapi, IIsapiAuthenticated
 
     private void Login(SessionLoginCap capabilitiesResponse)
     {
-        logger.Information($"[ISAPI] Log in");
-
         var passwordHash = config.Password.ToPasswordHash(
             capabilitiesResponse.Challenge,
             config.User,
@@ -92,45 +88,47 @@ public class Isapi : IIsapi, IIsapiAuthenticated
 
         if (response.Cookies == null)
         {
-            logger.Error("[ISAPI] No cookies in login response");
-            throw new Exception("[ISAPI] No cookies in login response");
+            logger.Error("No cookies in login response");
+            throw new Exception("No cookies in login response");
         }
 
         client.Options?.CookieContainer?.Add(response.Cookies);
-        
+
         loggedIn = true;
         heartBeatCount = 0;
+
+
+        logger.Information($"Successfully Logged-In as [{config.User}]");
+
     }
 
     public IIsapiAuthenticated SessionHeartBeat()
     {
         var hearBeatRequest = new RestRequest("Security/sessionHeartbeat");
-        var response = client.LogRequest< Model.Response.ResponseStatus>(hearBeatRequest, Method.Put);
+        var response = client.LogRequest<Model.Response.ResponseStatus>(hearBeatRequest, Method.Put);
         response.ThrowIfError();
 
         if (!(response.IsSuccessful && response.Data?.StatusCode == (int)ResponseStatusString.OK))
             throw new Exception($"Unable to execute heartbeat!");
 
         heartBeatCount++;
+        logger.Information($"Session heartbeat sent");
 
         return this;
     }
 
     public IIsapi LogOut()
     {
-        logger.Information($"[ISAPI] Log out");
         var logoutRequest = new RestRequest("Security/sessionLogout");
         client.LogRequest<Model.Response.ResponseStatus>(logoutRequest, Method.Put);
 
         loggedIn = false;
-
+        logger.Information($"Successfully Logged-Out");
         return this;
     }
 
     public IIsapiAuthenticated DoorOpen(int doorNo)
     {
-        logger.Information($"[ISAPI] Open Door [{doorNo}]");
-
         var request = new RestRequest($"AccessControl/RemoteControl/door/{doorNo}")
         {
             RequestFormat = DataFormat.Xml
@@ -142,6 +140,8 @@ public class Isapi : IIsapi, IIsapiAuthenticated
 
         if (!(response.IsSuccessful && response.Data?.StatusCode == (int)ResponseStatusString.OK))
             throw new Exception($"Unable to open door!");
+
+        logger.Information($"Door [{doorNo}] successfully opened");
 
         return this;
     }
@@ -156,5 +156,11 @@ public class Isapi : IIsapi, IIsapiAuthenticated
         DateTime utcNow = DateTime.UtcNow;
         DateTime epoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         return (long)(utcNow - epoch).TotalMilliseconds;
+    }
+
+    public void Dispose()
+    {
+        if (loggedIn)
+            LogOut();
     }
 }
