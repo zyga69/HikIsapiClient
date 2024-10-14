@@ -9,7 +9,7 @@ using ILogger = Serilog.ILogger;
 
 namespace HikIsapi.Client;
 
-public class Isapi : IIsapi, IIsapiAuthenticated, IDisposable
+public class Isapi : IIsapi, IIsapiAuthenticated
 {
     public const string ServiceKey = "ISAPI";
 
@@ -97,9 +97,7 @@ public class Isapi : IIsapi, IIsapiAuthenticated, IDisposable
         loggedIn = true;
         heartBeatCount = 0;
 
-
         logger.Information($"Successfully Logged-In as [{config.User}]");
-
     }
 
     public IIsapiAuthenticated SessionHeartBeat()
@@ -156,11 +154,5 @@ public class Isapi : IIsapi, IIsapiAuthenticated, IDisposable
         DateTime utcNow = DateTime.UtcNow;
         DateTime epoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         return (long)(utcNow - epoch).TotalMilliseconds;
-    }
-
-    public void Dispose()
-    {
-        if (loggedIn)
-            LogOut();
     }
 }
