@@ -2,7 +2,7 @@ namespace HikIsapi.Client
 {
     public interface IIsapi
     {
-        IIsapiAuthenticated Login();
+        IIsapiAuthenticated Login(bool force = false);
 
         bool IsAvailable();
     }

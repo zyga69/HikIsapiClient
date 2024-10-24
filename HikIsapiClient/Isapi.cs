@@ -43,9 +43,11 @@ public class Isapi : IIsapi, IIsapiAuthenticated
 
     public bool IsAvailable() => GetLoginCapabilities().IsSuccessful;
 
-    public IIsapiAuthenticated Login()
+    public IIsapiAuthenticated Login(bool force = false)
     {
-        if (loggedIn) { return this; }
+        if (force) loggedIn = false;
+
+        if (loggedIn) return this;
 
         var loginCapabilities = GetLoginCapabilities();
         loginCapabilities.ThrowIfError();
