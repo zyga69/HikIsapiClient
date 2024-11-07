@@ -1,3 +1,3 @@
 [submodule "HikIsapiClient/SeriRestClient"]
-	path = HikIsapiClient/SeriRestClient
-	url = https://zyga69@bitbucket.org/zyga69/serirestclient.git
+path = HikIsapiClient/SeriRestClient
+url = git@bitbucket.org:zyga69/serirestclient.git
