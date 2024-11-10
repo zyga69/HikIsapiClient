@@ -8,7 +8,7 @@ using System.Net;
 
 namespace hikisapiclient.ExtensionMethods
 {
-    public static class IHostBuilderExtensions
+    public static class RegistrationExtensions
     {
         public static IHostBuilder AddHikIsapi(this IHostBuilder hostBuilder, string configSection)
         {
@@ -22,13 +22,8 @@ namespace hikisapiclient.ExtensionMethods
                         )
                      .AddSeriRestClient(Isapi.ServiceKey, (sp, key) =>
                      {
-                         var config = sp.GetRequiredService<IIsapiConfig>();
-                         return new RestClientOptions()
-                         {
-                             CookieContainer = new CookieContainer(),
-                             BaseUrl = new Uri($"{config.Address}/ISAPI"),
-                             MaxTimeout = config.MaxTimeout
-                         };
+                         return sp.GetRequiredService<IIsapiConfig>()
+                            .GetRestClientOptions();
                      })
                      .AddTransient<IIsapi, Isapi>((sp) => new Isapi(
                         sp.GetRequiredService<IIsapiConfig>(),
@@ -38,26 +33,31 @@ namespace hikisapiclient.ExtensionMethods
             });
         }
 
-        public static IServiceCollection AddKeyedHikIsapi<TConfig>(this IServiceCollection services, object isapiKey, Func<IServiceProvider, object, TConfig> implementationFactory)
+        public static IServiceCollection AddKeyedHikIsapi<TConfig>(this IServiceCollection services, object isapiKey, Func<IServiceProvider, object?, TConfig> implementationFactory)
             where TConfig : class, IIsapiConfig
         {
             return services
                 .AddKeyedSingleton<IIsapiConfig, TConfig>(isapiKey, implementationFactory)
                 .AddSeriRestClient($"{Isapi.ServiceKey}_{isapiKey}", (sp, seriRestKey) =>
                 {
-                    var config = sp.GetRequiredKeyedService<IIsapiConfig>(isapiKey);
-                    return new RestClientOptions()
-                    {
-                        CookieContainer = new CookieContainer(),
-                        BaseUrl = new Uri($"{config.Address}/ISAPI"),
-                        Timeout = TimeSpan.FromMilliseconds(config.MaxTimeout)
-                    };
+                    return sp.GetRequiredKeyedService<IIsapiConfig>(isapiKey)
+                        .GetRestClientOptions();
                 })
                 .AddKeyedScoped<IIsapi, Isapi>(isapiKey, (sp, _) => new Isapi(
                     sp.GetRequiredKeyedService<IIsapiConfig>(isapiKey),
                     sp.GetRequiredService<Serilog.ILogger>(),
                     sp.GetRequiredKeyedService<SeriRestClient>($"{Isapi.ServiceKey}_{isapiKey}")
                     ));
+        }
+
+        public static RestClientOptions GetRestClientOptions(this IIsapiConfig config)
+        {
+            return new RestClientOptions()
+            {
+                CookieContainer = new CookieContainer(),
+                BaseUrl = new Uri($"{config.Address}/ISAPI"),
+                Timeout = TimeSpan.FromMilliseconds(config.MaxTimeout ?? 5000)
+            };
         }
     }
 }

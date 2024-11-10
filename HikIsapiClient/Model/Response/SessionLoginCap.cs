@@ -7,10 +7,10 @@ namespace HikIsapi.Client.Model.Response
     public class SessionLoginCap
     {
         [XmlElement(ElementName = "sessionID")]
-        public  string? SessionID { get; set; }
+        public required string SessionID { get; set; }
 
         [XmlElement(ElementName = "challenge")]
-        public  string? Challenge { get; set; }
+        public required string Challenge { get; set; }
 
         [XmlElement(ElementName = "iterations")]
         public int Iterations { get; set; }
@@ -19,7 +19,7 @@ namespace HikIsapi.Client.Model.Response
         public bool IsIrreversible { get; set; }
 
         [XmlElement(ElementName = "salt")]
-        public  string? Salt { get; set; }
+        public required string Salt { get; set; }
 
         [XmlElement(ElementName = "sessionIDVersion")]
         public int SessionIDVersion { get; set; }
