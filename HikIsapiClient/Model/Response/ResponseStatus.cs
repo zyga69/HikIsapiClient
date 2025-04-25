@@ -27,7 +27,7 @@ namespace HikIsapi.Client.Model.Response
     public class ResponseStatus
     {
         [XmlElement(ElementName = "requestURL")]
-        public  string RequestUrl { get; set; }
+        public string? RequestUrl { get; set; }
 
         [XmlElement(ElementName = "statusCode")]
         public  int StatusCode { get; set; }
