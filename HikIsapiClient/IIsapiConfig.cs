@@ -6,5 +6,9 @@ public interface IIsapiConfig
     string Address { get; }
     string User { get; }
     string Password { get; }
-    int MaxTimeout { get; }
+
+    /// <summary>
+    /// Maximum request timeout in milliseconds
+    /// </summary>
+    int? MaxTimeout { get; }
 }
