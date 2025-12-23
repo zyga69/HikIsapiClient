@@ -2,7 +2,17 @@ namespace HikIsapi.Client
 {
     public interface IIsapi
     {
-        IIsapiAuthenticated Login(bool force = false);
+        /// <summary>
+        /// Login to Hik Device - without checking current state
+        /// </summary>
+        /// <returns></returns>
+        IIsapiAuthenticated Login();
+
+        /// <summary>
+        /// Will login to hik if state indicates that it is not logged in
+        /// </summary>
+        /// <returns></returns>
+        IIsapiAuthenticated EnsureLoggedIn();
 
         bool IsAvailable();
     }

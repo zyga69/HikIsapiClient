@@ -43,6 +43,27 @@ public class Isapi : IIsapi, IIsapiAuthenticated
 
     public bool IsAvailable() => GetLoginCapabilities().IsSuccessful;
 
+    public IIsapiAuthenticated Login()
+    {
+        var loginCapabilities = GetLoginCapabilities();
+        loginCapabilities.ThrowIfError();
+
+        if (loginCapabilities.Data == null)
+            throw new Exception("No login capabilities");
+
+        Login(loginCapabilities.Data);
+
+        return this;
+    }
+
+    public IIsapiAuthenticated EnsureLoggedIn()
+    {
+        if (loggedIn) 
+            return this;
+
+        return Login();
+    }
+
     public IIsapiAuthenticated Login(bool force = false)
     {
         if (force) loggedIn = false;
@@ -157,4 +178,6 @@ public class Isapi : IIsapi, IIsapiAuthenticated
         DateTime epoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         return (long)(utcNow - epoch).TotalMilliseconds;
     }
+
+   
 }
