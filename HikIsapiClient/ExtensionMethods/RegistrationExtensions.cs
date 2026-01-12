@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using RestSharp;
-using SeriRest;
+using SeriRestClient;
 using System.Net;
 
 namespace hikisapiclient.ExtensionMethods
@@ -28,7 +28,7 @@ namespace hikisapiclient.ExtensionMethods
                      .AddTransient<IIsapi, Isapi>((sp) => new Isapi(
                         sp.GetRequiredService<IIsapiConfig>(),
                         sp.GetRequiredService<Serilog.ILogger>(),
-                        sp.GetRequiredKeyedService<SeriRestClient>($"{Isapi.ServiceKey}")
+                        sp.GetRequiredKeyedService<SeriRestClient.SeriRestClient>($"{Isapi.ServiceKey}")
                         ));
             });
         }
@@ -46,7 +46,7 @@ namespace hikisapiclient.ExtensionMethods
                 .AddKeyedScoped<IIsapi, Isapi>(isapiKey, (sp, _) => new Isapi(
                     sp.GetRequiredKeyedService<IIsapiConfig>(isapiKey),
                     sp.GetRequiredService<Serilog.ILogger>(),
-                    sp.GetRequiredKeyedService<SeriRestClient>($"{Isapi.ServiceKey}_{isapiKey}")
+                    sp.GetRequiredKeyedService<SeriRestClient.SeriRestClient>($"{Isapi.ServiceKey}_{isapiKey}")
                     ));
         }
 

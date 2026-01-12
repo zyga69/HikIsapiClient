@@ -4,7 +4,6 @@ using HikIsapi.Client.Model.Request;
 using HikIsapi.Client.Model.Response;
 using NetDaemonApps.Lib.HikIsapiClient.HikIsapiClient.ExtensionMethods;
 using RestSharp;
-using SeriRest;
 using ILogger = Serilog.ILogger;
 
 namespace HikIsapi.Client;
@@ -13,7 +12,7 @@ public class Isapi : IIsapi, IIsapiAuthenticated
 {
     public const string ServiceKey = "ISAPI";
 
-    private readonly SeriRestClient client;
+    private readonly SeriRestClient.SeriRestClient client;
     private readonly ILogger logger;
     private readonly IIsapiConfig config;
 
@@ -22,7 +21,7 @@ public class Isapi : IIsapi, IIsapiAuthenticated
 
     public int HeartBeatCount => heartBeatCount;
 
-    public Isapi(IIsapiConfig config, ILogger logger, SeriRestClient seriRestClient)
+    public Isapi(IIsapiConfig config, ILogger logger, SeriRestClient.SeriRestClient seriRestClient)
     {
         this.logger = logger.ForContext($"{ServiceKey}.{config.Name}");
         this.config = config;
