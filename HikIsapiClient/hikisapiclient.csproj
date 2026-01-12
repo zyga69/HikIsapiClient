@@ -4,6 +4,18 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <PackageId>HikIsapiClient</PackageId>
+    <Authors>Szymon Zywert</Authors>
+    <Product>HikIsapiClient</Product>
+    <Description>Hikvision ISAPI client with Serilog logging capabilities</Description>
+    <PackageTags>hikvision;isapi;client;serilog;logging;camera;nvr</PackageTags>
+    <RepositoryUrl>https://bitbucket.org/zyga69/hikisapiclient</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsPackable>true</IsPackable>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
