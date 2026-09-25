@@ -35,7 +35,7 @@ public class Isapi : IIsapi, IIsapiAuthenticated
         request.AddQueryParameter("random", GetRandom());
         request.RequestFormat = DataFormat.Xml;
 
-        logger.Information($"Getting Login Capabilities for user [{config.User}]");
+        logger.Debug($"Getting Login Capabilities for user [{config.User}]");
 
         return client.LogRequest<SessionLoginCap>(request, Method.Get);
     }
@@ -132,7 +132,7 @@ public class Isapi : IIsapi, IIsapiAuthenticated
             throw new Exception($"Unable to execute heartbeat!");
 
         heartBeatCount++;
-        logger.Information($"Session heartbeat sent");
+        logger.Debug($"Session heartbeat sent");
 
         return this;
     }
