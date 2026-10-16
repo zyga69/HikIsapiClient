@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>Zyga.HikIsapiClient</PackageId>
+    <RootNamespace>Zyga.HikIsapiClient</RootNamespace>
+    <Description>A Hikvision ISAPI client with Serilog logging, session management, and DI integration.</Description>
+    <PackageTags>hikvision;isapi;client;serilog;logging;camera;nvr</PackageTags>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MinVer" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="RestSharp" />
+    <PackageReference Include="Serilog" />
+    <PackageReference Include="Zyga.SeriRestClient" />
+  </ItemGroup>
+
+</Project>

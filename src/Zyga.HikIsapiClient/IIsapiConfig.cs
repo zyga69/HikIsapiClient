@@ -1,4 +1,4 @@
-namespace HikIsapi.Client;
+namespace Zyga.HikIsapiClient;
 
 /// <summary>
 /// Represents the configuration settings required to connect to an ISAPI service.

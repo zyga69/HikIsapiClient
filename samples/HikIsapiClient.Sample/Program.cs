@@ -1,11 +1,11 @@
-﻿using HikIsapi.Client;
-using hikisapiclient.ExtensionMethods;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
+using Zyga.HikIsapiClient;
+using Zyga.HikIsapiClient.ExtensionMethods;
 
-namespace HikIsapiTest;
+namespace HikIsapiClient.Sample;
 
 internal class Program
 {

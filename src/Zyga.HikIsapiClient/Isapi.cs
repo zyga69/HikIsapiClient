@@ -1,27 +1,39 @@
-using HikIsapi.Client.ExtensionMethods;
-using HikIsapi.Client.Model;
-using HikIsapi.Client.Model.Request;
-using HikIsapi.Client.Model.Response;
-using NetDaemonApps.Lib.HikIsapiClient.HikIsapiClient.ExtensionMethods;
 using RestSharp;
+using Zyga.HikIsapiClient.ExtensionMethods;
+using Zyga.HikIsapiClient.Model.Request;
+using Zyga.HikIsapiClient.Model.Response;
+using Zyga.SeriRestClient;
 using ILogger = Serilog.ILogger;
 
-namespace HikIsapi.Client;
+namespace Zyga.HikIsapiClient;
 
+/// <summary>
+/// Default <see cref="IIsapi"/> implementation for a single Hikvision device.
+/// </summary>
 public class Isapi : IIsapi, IIsapiAuthenticated
 {
+    /// <summary>
+    /// The service key prefix used when registering ISAPI-related services in DI.
+    /// </summary>
     public const string ServiceKey = "ISAPI";
 
-    private readonly SeriRestClient.SeriRestClient client;
+    private readonly LoggingRestClient client;
     private readonly ILogger logger;
     private readonly IIsapiConfig config;
 
     private bool loggedIn = false;
     private int heartBeatCount = 0;
 
+    /// <inheritdoc/>
     public int HeartBeatCount => heartBeatCount;
 
-    public Isapi(IIsapiConfig config, ILogger logger, SeriRestClient.SeriRestClient seriRestClient)
+    /// <summary>
+    /// Initializes a new instance for the given device configuration.
+    /// </summary>
+    /// <param name="config">The device configuration.</param>
+    /// <param name="logger">The logger to use, scoped per device.</param>
+    /// <param name="seriRestClient">The REST client used to talk to the device.</param>
+    public Isapi(IIsapiConfig config, ILogger logger, LoggingRestClient seriRestClient)
     {
         this.logger = logger.ForContext($"{ServiceKey}.{config.Name}");
         this.config = config;
@@ -40,8 +52,10 @@ public class Isapi : IIsapi, IIsapiAuthenticated
         return client.LogRequest<SessionLoginCap>(request, Method.Get);
     }
 
+    /// <inheritdoc/>
     public bool IsAvailable() => GetLoginCapabilities().IsSuccessful;
 
+    /// <inheritdoc/>
     public IIsapiAuthenticated Login()
     {
         var loginCapabilities = GetLoginCapabilities();
@@ -55,14 +69,20 @@ public class Isapi : IIsapi, IIsapiAuthenticated
         return this;
     }
 
+    /// <inheritdoc/>
     public IIsapiAuthenticated EnsureLoggedIn()
     {
-        if (loggedIn) 
+        if (loggedIn)
             return this;
 
         return Login();
     }
 
+    /// <summary>
+    /// Logs in, optionally forcing a fresh session even if one is already active.
+    /// </summary>
+    /// <param name="force">If <c>true</c>, discards any existing session and logs in again.</param>
+    /// <returns>An authenticated client for the current session.</returns>
     public IIsapiAuthenticated Login(bool force = false)
     {
         if (force) loggedIn = false;
@@ -95,7 +115,7 @@ public class Isapi : IIsapi, IIsapiAuthenticated
         };
         loginRequest.AddQueryParameter("timeStamp", GetTime());
 
-        loginRequest.AddBody(new SessionLogin()
+        loginRequest.AddBody(new Model.Request.SessionLogin()
         {
             UserName = config.User,
             Password = passwordHash,
@@ -105,7 +125,7 @@ public class Isapi : IIsapi, IIsapiAuthenticated
             SessionIDVersion = 2
         });
 
-        var response = client.LogRequest<SessionLogin>(loginRequest, Method.Post);
+        var response = client.LogRequest<Model.Response.SessionLogin>(loginRequest, Method.Post);
         response.ThrowIfError();
 
         if (response.Cookies == null)
@@ -122,6 +142,7 @@ public class Isapi : IIsapi, IIsapiAuthenticated
         logger.Information($"Successfully Logged-In as [{config.User}]");
     }
 
+    /// <inheritdoc/>
     public IIsapiAuthenticated SessionHeartBeat()
     {
         var hearBeatRequest = new RestRequest("Security/sessionHeartbeat");
@@ -137,6 +158,7 @@ public class Isapi : IIsapi, IIsapiAuthenticated
         return this;
     }
 
+    /// <inheritdoc/>
     public IIsapi LogOut()
     {
         var logoutRequest = new RestRequest("Security/sessionLogout");
@@ -147,6 +169,7 @@ public class Isapi : IIsapi, IIsapiAuthenticated
         return this;
     }
 
+    /// <inheritdoc/>
     public IIsapiAuthenticated DoorOpen(int doorNo)
     {
         var request = new RestRequest($"AccessControl/RemoteControl/door/{doorNo}")
@@ -177,6 +200,4 @@ public class Isapi : IIsapi, IIsapiAuthenticated
         DateTime epoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         return (long)(utcNow - epoch).TotalMilliseconds;
     }
-
-   
 }
