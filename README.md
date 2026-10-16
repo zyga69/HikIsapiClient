@@ -1,24 +1,30 @@
-# HikIsapiClient
+# Zyga.HikIsapiClient
 
-A .NET client library for interacting with Hikvision devices using the ISAPI protocol, with integrated Serilog logging capabilities.
+[![CI](https://github.com/zyga69/HikIsapiClient/actions/workflows/ci.yml/badge.svg)](https://github.com/zyga69/HikIsapiClient/actions/workflows/ci.yml)
+[![NuGet](https://img.shields.io/nuget/v/Zyga.HikIsapiClient.svg)](https://www.nuget.org/packages/Zyga.HikIsapiClient)
+[![Downloads](https://img.shields.io/nuget/dt/Zyga.HikIsapiClient.svg)](https://www.nuget.org/packages/Zyga.HikIsapiClient)
+[![codecov](https://codecov.io/gh/zyga69/HikIsapiClient/branch/main/graph/badge.svg)](https://codecov.io/gh/zyga69/HikIsapiClient)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+A .NET client library for interacting with Hikvision devices using the ISAPI protocol, with integrated Serilog logging via [Zyga.SeriRestClient](https://www.nuget.org/packages/Zyga.SeriRestClient).
 
 ## Features
 
 - 🔐 **Session Management** - Automatic login/logout handling with session keep-alive
 - 🚪 **Door Control** - Remote door control operations
-- 📝 **Logging** - Built-in Serilog integration for comprehensive request/response logging
+- 📝 **Logging** - Request/response logging via Zyga.SeriRestClient's Serilog integration
 - 🔄 **State Management** - Smart session state handling with `EnsureLoggedIn()`
 - 🔌 **Dependency Injection** - First-class support for Microsoft.Extensions.DependencyInjection
 - 🎯 **Keyed Services** - Support for multiple Hikvision device instances
 - ⚙️ **Configuration** - Easy configuration through IConfiguration
 
-## Installation
-
-Install via NuGet:
+## Install
 
 ```bash
-dotnet add package HikIsapiClient
+dotnet add package Zyga.HikIsapiClient
 ```
+
+Targets .NET 8, .NET 9 and .NET 10.
 
 ## Usage
 
@@ -41,7 +47,7 @@ Configure your Hikvision device in `appsettings.json`:
 Register in your `Program.cs` or `Startup.cs`:
 
 ```csharp
-using hikisapiclient.ExtensionMethods;
+using Zyga.HikIsapiClient.ExtensionMethods;
 
 Host.CreateDefaultBuilder(args)
     .AddHikIsapi("HikDevice")
@@ -55,12 +61,12 @@ Host.CreateDefaultBuilder(args)
 public class MyService
 {
     private readonly IIsapi _isapi;
-    
+
     public MyService(IIsapi isapi)
     {
         _isapi = isapi;
     }
-    
+
     public void OpenDoor()
     {
         // Check if device is available
@@ -68,21 +74,21 @@ public class MyService
         {
             throw new Exception("Device is not available");
         }
-        
+
         // Login and open door #1
         _isapi.Login()
               .DoorOpen(1)
               .LogOut();
     }
-    
+
     public void MaintainSession()
     {
         // Ensure logged in (will login only if needed)
         var authenticated = _isapi.EnsureLoggedIn();
-        
+
         // Send heartbeat to keep session alive
         authenticated.SessionHeartBeat();
-        
+
         // Check heartbeat count
         Console.WriteLine($"Heartbeats sent: {authenticated.HeartBeatCount}");
     }
@@ -95,11 +101,11 @@ Register multiple Hikvision devices:
 
 ```csharp
 services
-    .AddKeyedHikIsapi("entrance", (sp, key) => 
+    .AddKeyedHikIsapi("entrance", (sp, key) =>
         sp.GetRequiredService<IConfiguration>()
           .GetSection("Devices:Entrance")
           .Get<IsapiConfig>())
-    .AddKeyedHikIsapi("parking", (sp, key) => 
+    .AddKeyedHikIsapi("parking", (sp, key) =>
         sp.GetRequiredService<IConfiguration>()
           .GetSection("Devices:Parking")
           .Get<IsapiConfig>());
@@ -112,7 +118,7 @@ public class SecurityService
 {
     private readonly IIsapi _entranceDevice;
     private readonly IIsapi _parkingDevice;
-    
+
     public SecurityService(
         [FromKeyedServices("entrance")] IIsapi entranceDevice,
         [FromKeyedServices("parking")] IIsapi parkingDevice)
@@ -152,27 +158,28 @@ public class SecurityService
 | `Password` | Password for authentication |
 | `MaxTimeout` | Maximum request timeout in milliseconds (default: 5000) |
 
-## Dependencies
+## Sample
 
-- .NET 10.0
-- RestSharp 113.0+
-- Serilog 4.3+
-- SeriRestClient 0.1+
-- Microsoft.Extensions.DependencyInjection 10.0+
-- Microsoft.Extensions.Configuration 10.0+
+A runnable console sample lives in [`samples/HikIsapiClient.Sample`](samples/HikIsapiClient.Sample) —
+point its `appsettings.json` at your own device before running it.
 
-## Logging
+## Requirements
 
-All HTTP requests and responses are automatically logged via Serilog through the integrated SeriRestClient. Configure Serilog in your application to capture detailed API interactions.
-
-## License
-
-See LICENSE file for details.
+- .NET 8, .NET 9, or .NET 10
+- RestSharp 114.0.0+
+- Serilog 4.4.0+
+- Zyga.SeriRestClient 0.1.1+
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit issues or pull requests.
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Repository
+## License
 
-https://bitbucket.org/zyga69/hikisapiclient
+[MIT](LICENSE)
+
+## Version
+
+This package uses [MinVer](https://github.com/adamralph/minver) for semantic versioning,
+derived from `v`-prefixed git tags (e.g. `v1.2.3`). There is no `<Version>` element
+anywhere in the source — maintainers cut a release by pushing a tag.
