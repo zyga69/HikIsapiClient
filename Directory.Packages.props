@@ -20,7 +20,7 @@
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.13" />
     <PackageVersion Include="RestSharp" Version="114.1.0" />
     <PackageVersion Include="Serilog" Version="4.4.0" />
-    <PackageVersion Include="Zyga.SeriRestClient" Version="0.1.1" />
+    <PackageVersion Include="Zyga.SeriRestClient" Version="0.2.0" />
   </ItemGroup>
 
   <!-- Console sample only. -->
