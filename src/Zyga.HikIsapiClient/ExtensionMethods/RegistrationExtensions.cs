@@ -28,11 +28,10 @@ public static class RegistrationExtensions
                         .GetRequiredSection(configSection)
                         .Get<IsapiConfig>() ?? throw new Exception($"Section [{configSection}] not found in config")
                     )
-                 .AddSeriRestClient(Isapi.ServiceKey, (sp, key) =>
-                 {
-                     return sp.GetRequiredService<IIsapiConfig>()
-                        .GetRestClientOptions();
-                 })
+                 .AddSeriRestClient(Isapi.ServiceKey)
+                 .Configure((sp, _, options) => sp.GetRequiredService<IIsapiConfig>()
+                    .ApplyRestClientOptions(options))
+                 .Services
                  .AddTransient<IIsapi, Isapi>((sp) => new Isapi(
                     sp.GetRequiredService<IIsapiConfig>(),
                     sp.GetRequiredService<Serilog.ILogger>(),
@@ -53,13 +52,13 @@ public static class RegistrationExtensions
     public static IServiceCollection AddKeyedHikIsapi<TConfig>(this IServiceCollection services, object isapiKey, Func<IServiceProvider, object?, TConfig> implementationFactory)
         where TConfig : class, IIsapiConfig
     {
-        return services
+        services
             .AddKeyedSingleton<IIsapiConfig, TConfig>(isapiKey, implementationFactory)
-            .AddSeriRestClient($"{Isapi.ServiceKey}_{isapiKey}", (sp, seriRestKey) =>
-            {
-                return sp.GetRequiredKeyedService<IIsapiConfig>(isapiKey)
-                    .GetRestClientOptions();
-            })
+            .AddSeriRestClient($"{Isapi.ServiceKey}_{isapiKey}")
+            .Configure((sp, _, options) => sp.GetRequiredKeyedService<IIsapiConfig>(isapiKey)
+                .ApplyRestClientOptions(options));
+
+        return services
             .AddKeyedScoped<IIsapi, Isapi>(isapiKey, (sp, _) => new Isapi(
                 sp.GetRequiredKeyedService<IIsapiConfig>(isapiKey),
                 sp.GetRequiredService<Serilog.ILogger>(),
@@ -74,11 +73,20 @@ public static class RegistrationExtensions
     /// <returns>Configured <see cref="RestClientOptions"/> pointing at the device's ISAPI endpoint.</returns>
     public static RestClientOptions GetRestClientOptions(this IIsapiConfig config)
     {
-        return new RestClientOptions()
-        {
-            CookieContainer = new CookieContainer(),
-            BaseUrl = new Uri($"{config.Address}/ISAPI"),
-            Timeout = TimeSpan.FromMilliseconds(config.MaxTimeout ?? 5000)
-        };
+        var options = new RestClientOptions();
+        config.ApplyRestClientOptions(options);
+        return options;
+    }
+
+    /// <summary>
+    /// Applies a device's configuration onto an existing <see cref="RestClientOptions"/> instance.
+    /// </summary>
+    /// <param name="config">The device configuration.</param>
+    /// <param name="options">The options instance to configure.</param>
+    private static void ApplyRestClientOptions(this IIsapiConfig config, RestClientOptions options)
+    {
+        options.CookieContainer = new CookieContainer();
+        options.BaseUrl = new Uri($"{config.Address}/ISAPI");
+        options.Timeout = TimeSpan.FromMilliseconds(config.MaxTimeout ?? 5000);
     }
 }
